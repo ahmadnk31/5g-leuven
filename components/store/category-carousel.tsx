@@ -12,8 +12,8 @@ interface CategoryCarouselProps {
 
 export function CategoryCarousel({ categories }: CategoryCarouselProps) {
   return (
-    <section className="py-8 px-4 md:px-0">
-      <div className="container mx-auto">
+    <section className="py-8 px-4">
+      <div className=" mx-auto">
         <h2 className="text-2xl font-bold mb-6">Shop by Category</h2>
         <Carousel 
           opts={{
@@ -21,7 +21,7 @@ export function CategoryCarousel({ categories }: CategoryCarouselProps) {
             loop: true,
             
           }}
-          className="w-full"
+          className="w-full group"
         >
           <CarouselContent className="-ml-2 md:-ml-4">
             {categories.map((category) => (
@@ -50,8 +50,8 @@ export function CategoryCarousel({ categories }: CategoryCarouselProps) {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="hidden md:flex" />
-          <CarouselNext className="hidden md:flex" />
+          <CarouselPrevious className="hidden group-hover:flex left-8 md:group-hover:flex" />
+          <CarouselNext className="hidden group-hover:flex right-8 md:group-hover:flex" />
         </Carousel>
       </div>
     </section>

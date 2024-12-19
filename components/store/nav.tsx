@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ShoppingCart, Home, Package, Settings, User, LogOut } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { useCartStore } from '@/lib/store/store'
+
 import {
   Sheet,
   SheetContent,
@@ -25,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from 'next/navigation'
-import { StreamlineCellularNetwork5g } from '../logo'
+
 
 export function Navbar() {
     const { items, removeFromCart, updateQuantity } = useCartStore()
@@ -52,7 +53,7 @@ export function Navbar() {
       <nav className="sticky top-0 z-50 bg-white shadow-sm">
         <div className=" mx-auto flex justify-between items-center p-4">
           <Link href="/" className="flex items-center space-x-2">
-            <StreamlineCellularNetwork5g className="h-8 w-8 text-green-500" />
+          <Image src='/StreamLineCellularNetwork5g.png' width={40} height={40} alt='5G leuven logo' />
           </Link>
           
           <div className="flex items-center space-x-4">

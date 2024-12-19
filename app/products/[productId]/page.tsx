@@ -81,7 +81,7 @@ export default function ProductDetailPage({ params }: { params: { productId: str
   }
 
   return (
-    <div className="grid container  md:mx-auto py-4 px-4 md:px-0 md:grid-cols-2 gap-8">
+    <div className="grid mx-auto py-4 px-4 md:grid-cols-2 gap-8">
       {/* Product Images */}
       <div className="space-y-4">
         {/* Main Image */}

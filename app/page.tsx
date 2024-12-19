@@ -94,15 +94,15 @@ export default function HomePage() {
 
       {/* Featured Product Sections */}
       {Object.entries(featuredSections).map(([sectionTitle, products]) => (
-        <section key={sectionTitle} className="container mx-auto px-4 md:px-0">
+        <section key={sectionTitle} className="mx-auto px-4">
           <h2 className="text-2xl font-bold mb-6">{sectionTitle}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map(product => {
               const firstVariant = product.variants[0]
               const firstImage = firstVariant?.images&&firstVariant?.images[0]
 
               return (
-                <Card key={product.id}>
+                <Card key={product.id} className='overflow-hidden'>
                   {firstImage && (
                     <div className="relative w-full aspect-square">
                       <Image 
