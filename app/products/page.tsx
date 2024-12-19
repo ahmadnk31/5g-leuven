@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 
 import { ProductWithVariants, ProductSearchParams } from '@/lib/store/types'
 import { createClient } from '@/lib/supabase/client'
@@ -74,7 +74,9 @@ console.log(categoryId)
         categories={categories} 
         onSearch={handleSearch} 
       />
+      <Suspense fallback={<div>Loading...</div>}>
       <ProductListing products={products} />
+        </Suspense>
       {
             loading&&(
                 <span className='text-sm'>Loading</span>
