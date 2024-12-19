@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from 'next/navigation'
+import { StreamlineCellularNetwork5g } from '../logo'
 
 
 export function Navbar() {
@@ -53,7 +54,7 @@ export function Navbar() {
       <nav className="sticky top-0 z-50 bg-white shadow-sm">
         <div className=" mx-auto flex justify-between items-center p-4">
           <Link href="/" className="flex items-center space-x-2">
-          <Image src='StreamLineCellularNetwork5g.png' width={40} height={40} alt='5G leuven logo' />
+          <StreamlineCellularNetwork5g className="h-10 text-primary w-10" aria-label='5G Leuven Logo' />
           </Link>
           
           <div className="flex items-center space-x-4">

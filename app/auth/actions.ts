@@ -14,7 +14,7 @@ export async function loginAction(formData:FormData){
     if(error){
     return encodedRedirect('error','/auth/signin','Failed to login')
     }
-    return encodedRedirect('success','/','Login successful')
+    return encodedRedirect('success','/','')
 }
 
 export async function logoutAction(){
