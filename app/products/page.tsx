@@ -8,30 +8,22 @@ import { getProductsByCategoryId, searchProducts } from '@/lib/store/search-prod
 import { ProductSearch } from '@/components/store/product-search'
 import { ProductListing } from '@/components/store/product'
 
-function SearchParamsWrapper({ onParamsChange }: { onParamsChange: (params: ProductSearchParams) => void }) {
-  const searchParams = useSearchParams()
-  
-  useEffect(() => {
-    const params: ProductSearchParams = {
-      categoryId: searchParams.get('categoryId') || undefined,
-      query: searchParams.get('query') || '',
-      minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
-      maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
-    }
-    onParamsChange(params)
-  }, [searchParams, onParamsChange])
-  
-  return null
-}
-
-export default function ProductsPage() {
+function ProductsPageContent() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [products, setProducts] = useState<ProductWithVariants[]>([])
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState<any[]>([])
-  const [searchParams, setSearchParams] = useState<ProductSearchParams>({})
-  
+
+  // Initialize search parameters from URL
+  const currentParams: ProductSearchParams = {
+    categoryId: searchParams.get('categoryId') || undefined,
+    query: searchParams.get('query') || '',
+    minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
+    maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
+  }
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -51,10 +43,10 @@ export default function ProductsPage() {
       setLoading(true)
       try {
         let fetchedProducts: ProductWithVariants[]
-        if (searchParams.categoryId) {
-          fetchedProducts = await getProductsByCategoryId(searchParams.categoryId)
+        if (currentParams.categoryId) {
+          fetchedProducts = await getProductsByCategoryId(currentParams.categoryId)
         } else {
-          fetchedProducts = await searchProducts(searchParams)
+          fetchedProducts = await searchProducts(currentParams)
         }
         setProducts(fetchedProducts)
       } catch (error) {
@@ -64,7 +56,7 @@ export default function ProductsPage() {
       }
     }
     fetchProducts()
-  }, [searchParams])
+  }, [searchParams]) // Dependencies changed to searchParams
 
   const handleSearch = useCallback((params: ProductSearchParams) => {
     const searchQuery = new URLSearchParams()
@@ -76,25 +68,18 @@ export default function ProductsPage() {
     router.push(`/products?${searchQuery.toString()}`)
   }, [router])
 
-  const handleParamsChange = useCallback((params: ProductSearchParams) => {
-    setSearchParams(params)
-  }, [])
-
   return (
-    <div className=" mx-auto px-4 py-8">
-      <Suspense fallback={null}>
-        <SearchParamsWrapper onParamsChange={handleParamsChange} />
-      </Suspense>
+    <div className="mx-auto px-4 py-8">
       <ProductSearch 
         categories={categories} 
         onSearch={handleSearch}
-        initialParams={searchParams}
+        initialParams={currentParams}  // Pass current URL params
       />
       <Suspense fallback={<div>Loading...</div>}>
         <ProductListing products={products} />
       </Suspense>
       {loading && (
-        <span className='text-sm'>Loading</span>
+        <span className='text-sm'>Loading...</span>
       )}
       {products.length === 0 && !loading && (
         <span className='text-sm'>No products found</span>
@@ -103,3 +88,10 @@ export default function ProductsPage() {
   )
 }
 
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProductsPageContent />
+    </Suspense>
+  )
+}
