@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, Suspense } from 'react'
 
-import { ProductWithVariants, ProductSearchParams } from '@/lib/store/types'
+import { ProductWithVariants } from '@/lib/store/types'
 import { createClient } from '@/lib/supabase/client'
 import { getProductsByCategoryId, searchProducts } from '@/lib/store/search-products'
 import { ProductSearch } from '@/components/store/product-search'
