@@ -1,92 +1,101 @@
-'use client';
+'use client'
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { 
-  LayoutDashboard, 
-  Smartphone, 
-  FolderTree,
-  ImageIcon,
-  LogOut, 
-  Layers
-} from 'lucide-react';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarFooter
+} from "@/components/ui/sidebar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ChevronUp, MoreHorizontalIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-
-const routes = [
-  {
-    label: 'Overview',
-    icon: LayoutDashboard,
-    href: '/dashboard',
-    pattern: /^\/dashboard$/,
-  },
-  {
-    label: 'Products',
-    icon: Smartphone,
-    href: '/dashboard/products',
-    pattern: /^\/dashboard\/products/,
-  },
-  {
-    label:'Prodcuct variants',
-    icon: Layers,
-    href: '/dashboard/product-variants',
-    pattern: /^\/dashboard\/product-variants/,
-  },
-  {
-    label: 'Categories',
-    icon: FolderTree,
-    href: '/dashboard/categories',
-    pattern: /^\/dashboard\/categories/,
-  },
-  {
-    label: 'Billboards',
-    icon: ImageIcon,
-    href: '/dashboard/billboards',
-    pattern: /^\/dashboard\/billboards/,
-  },
-];
+import { routes } from '@/lib/route';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export function DashboardNav() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient()
-
-  const handleSignOut = async () => {
+  const supabase = createClient();
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const router=useRouter()
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
+      setProfile(profile);
+    };
+    fetchUser();
+  }, []);
+  const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/auth/signin');
-  };
-
+    // You might want to redirect the user or update the app state here
+  }
   return (
-    <nav className="space-y-6 h-[calc(100vh - h-16)] overflow-y-auto">
-      <div className="space-y-1">
-        {routes.map((route) => (
-          <Link
-            key={route.href}
-            href={route.href}
-            className={cn(
-              'flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-sidebar-accent text-sidebar-foreground',
-              route.pattern.test(pathname) 
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
-                : 'text-sidebar-foreground'
-            )}
-          >
-            <route.icon className="h-4 w-4 mr-2" />
-            {route.label}
-          </Link>
-        ))}
-      </div>
-      <div className="px-3">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" 
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign out
-        </Button>
-      </div>
-    </nav>
+    <Sidebar className="top-[128px] shadow-sm z-[100] h-[calc(100%-120px)]">
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {routes.map((item) => (
+                <SidebarMenuItem key={item.label}>
+                  <SidebarMenuButton asChild>
+                    <a href={item.href}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter className="pb-4">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton variant='outline'>
+                  <Avatar>
+                    <AvatarImage src={profile?.avatar_url || user?.avatar_url} />
+                    <AvatarFallback>
+                      {user?.email ? user.email[0].toUpperCase() : user?.full_name ? user.full_name[0].toUpperCase() : ''}
+                    </AvatarFallback>
+                  </Avatar>
+                  <MoreHorizontalIcon className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="top"
+                align="start"
+                className="w-[200px] z-[200]"
+              >
+                <DropdownMenuItem>
+                  <Link href="/profile">
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleLogout}>
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
   );
 }
+

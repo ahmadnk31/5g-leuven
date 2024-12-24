@@ -2,19 +2,24 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ProductSearchParams, ProductWithVariants } from '@/lib/store/types'
+import { ProductSearchParams, ProductWithDetails, Category, Size, Color, Tag } from '@/lib/store/types'
 import { createClient } from '@/lib/supabase/client'
 import { getProductsByCategoryId, searchProducts } from '@/lib/store/search-products'
 import { ProductSearch } from '@/components/store/product-search'
 import { ProductListing } from '@/components/store/product'
+import useCartStore from '@/lib/store/store'
 
 function ProductsPageContent() {
   const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [products, setProducts] = useState<ProductWithVariants[]>([])
+  const {items,removeFromCart,addToCart}=useCartStore()
+  const [products, setProducts] = useState<ProductWithDetails[]>([])
   const [loading, setLoading] = useState(true)
-  const [categories, setCategories] = useState<any[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [sizes, setSizes] = useState<Size[]>([])
+  const [colors, setColors] = useState<Color[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
 
   // Initialize search parameters from URL
   const currentParams: ProductSearchParams = {
@@ -22,27 +27,38 @@ function ProductsPageContent() {
     query: searchParams.get('query') || '',
     minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
     maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
+    sortBy: (searchParams.get('sortBy') as 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc') || undefined,
+    sizeId: searchParams.get('sizeId') || undefined,
+    colorId: searchParams.get('colorId') || undefined,
+    tagId: searchParams.get('tagId') || undefined,
   }
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchFilterOptions = async () => {
       try {
-        const { data: categoriesData } = await supabase
-          .from('categories')
-          .select('*')
-        setCategories(categoriesData || [])
+        const [categoriesData, sizesData, colorsData, tagsData] = await Promise.all([
+          supabase.from('categories').select('*'),
+          supabase.from('sizes').select('*'),
+          supabase.from('colors').select('*'),
+          supabase.from('tags').select('*')
+        ])
+
+        setCategories(categoriesData.data || [])
+        setSizes(sizesData.data || [])
+        setColors(colorsData.data || [])
+        setTags(tagsData.data || [])
       } catch (error) {
-        console.error('Error fetching categories:', error)
+        console.error('Error fetching filter options:', error)
       }
     }
-    fetchCategories()
+    fetchFilterOptions()
   }, [])
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true)
       try {
-        let fetchedProducts: ProductWithVariants[]
+        let fetchedProducts: ProductWithDetails[]
         if (currentParams.categoryId) {
           fetchedProducts = await getProductsByCategoryId(currentParams.categoryId)
         } else {
@@ -56,7 +72,7 @@ function ProductsPageContent() {
       }
     }
     fetchProducts()
-  }, [searchParams]) // Dependencies changed to searchParams
+  }, [searchParams])
 
   const handleSearch = useCallback((params: ProductSearchParams) => {
     const searchQuery = new URLSearchParams()
@@ -71,9 +87,12 @@ function ProductsPageContent() {
   return (
     <div className="mx-auto px-4 py-8">
       <ProductSearch 
-        categories={categories} 
+        categories={categories}
+        sizes={sizes}
+        colors={colors}
+        tags={tags}
         onSearch={handleSearch}
-        initialParams={currentParams}  // Pass current URL params
+        initialParams={currentParams}
       />
       <Suspense fallback={<div>Loading...</div>}>
         <ProductListing products={products} />
@@ -95,3 +114,4 @@ export default function ProductsPage() {
     </Suspense>
   )
 }
+

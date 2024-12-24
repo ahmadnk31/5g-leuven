@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 
-export default async function ProductsPage() {
+export default async function ProductVariantsPage() {
   
   const supabase = await createClient();
 

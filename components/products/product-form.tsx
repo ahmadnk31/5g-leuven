@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -26,10 +27,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { ProductSchema, type ProductFormValues } from '@/lib/validations/product';
 import { Loader2 } from 'lucide-react';
+import { CategoryFormValues } from '@/lib/validations/category';
+import { Switch } from '../ui/switch';
+import TipTapEditor from '../editor';
+import { JSONContent } from '@tiptap/core';
 
 interface ProductFormProps {
-  initialData: any;
-  categories: any[];
+  initialData: ProductFormValues;
+  categories: CategoryFormValues[];
 }
 
 export function ProductForm({ initialData, categories }: ProductFormProps) {
@@ -43,7 +48,10 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
     defaultValues: initialData || {
       name: '',
       description: '',
-      categoryId: '',
+      category_id: '',
+      is_featured: false,
+      is_archived: false,
+      price:0,
     },
   });
 
@@ -61,7 +69,10 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
           .update({
             name: data.name,
             description: data.description,
-            category_id: data.categoryId,
+            category_id: data.category_id,
+            is_featured: data.is_featured,
+            is_archived: data.is_archived,
+            price: Number(data.price)
           })
           .eq('id', initialData.id);
   
@@ -74,7 +85,10 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
           .upsert({
             name: data.name,
             description: data.description,
-            category_id: data.categoryId,
+            category_id: data.category_id,
+            is_featured: data.is_featured,
+            is_archived: data.is_archived,
+            price: Number(data.price)
           });
   
         if (productError) throw productError;
@@ -102,7 +116,7 @@ console.log(categories)
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <FormField
             control={form.control}
             name="name"
@@ -116,10 +130,27 @@ console.log(categories)
               </FormItem>
             )}
           />
-
+ <FormField
+          control={form.control}
+          name="price"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Price</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  type="number"
+                  disabled={loading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
           <FormField
             control={form.control}
-            name="categoryId"
+            name="category_id"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
@@ -135,7 +166,7 @@ console.log(categories)
                   </FormControl>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
+                      <SelectItem key={category.id} value={category.id||''}>
                         {category.name}
                       </SelectItem>
                     ))}
@@ -146,7 +177,7 @@ console.log(categories)
             )}
           />
         </div>
-
+       
         <FormField
           control={form.control}
           name="description"
@@ -154,13 +185,69 @@ console.log(categories)
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea {...field} disabled={loading} />
+               <TipTapEditor 
+               content={field.value }
+               onChange={(value) => {
+                console.log(`value from product form: ${value.getHTML()}`);
+                field.onChange(value.getHTML());}}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
+        <div className="flex items-center space-x-4">
+        <div>
+          <h3 className="mb-4 text-lg font-medium">
+            Product Settings
+          </h3>
+          <div className="gap-4 flex flex-col md:flex-row w-full items-center">
+            <FormField
+              control={form.control}
+              name="is_featured"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">
+                      Is Featured
+                    </FormLabel>
+                    <FormDescription>
+                      Switch on to mark this product as featured.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="is_archived"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Is Archived</FormLabel>
+                    <FormDescription>
+                      Switch on to archive this product.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={loading}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+          </div>
         <Button type="submit" disabled={loading}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {initialData ? 'Update Product' : 'Create Product'}

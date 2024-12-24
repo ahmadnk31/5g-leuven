@@ -1,9 +1,9 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { getProductById } from '@/lib/store/search-products'
-import { ProductWithVariants, CartItem } from '@/lib/store/types'
-import { useCartStore } from '@/lib/store/store'
+import { ProductWithDetails, CartItem } from '@/lib/store/types'
+import useCartStore from '@/lib/store/store'
 import { Button } from "@/components/ui/button"
 import { 
   Select, 
@@ -16,26 +16,26 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog"
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react'
+import TipTapEditorPreview from '@/components/tiptap-editor-preview'
+import { JSONContent } from '@tiptap/core'
 
 export default function ProductDetailPage({ params }: { params: { productId: string } }) {
-  const [product, setProduct] = useState<ProductWithVariants | null>(null)
+  const [product, setProduct] = useState<ProductWithDetails | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [quantity, setQuantity] = useState(1)
-  const { addToCart } = useCartStore()
-
-  // Get current variant's images
-  const currentVariantImages = product?.variants.find(v => v.id === selectedVariant)?.images || []
-
+  const { addToCart,removeFromCart,items } = useCartStore()
+  const [isHydrated, setIsHydrated] = useState(false)
+  // Fetch product data
   useEffect(() => {
-    async function fetchProduct() {
+    const fetchProduct = async () => {
       const fetchedProduct = await getProductById(params.productId)
       setProduct(fetchedProduct)
       
-      if (fetchedProduct?.variants.length) {
-        setSelectedVariant(fetchedProduct.variants[0].id)
+      if (fetchedProduct?.product_variants.length) {
+        setSelectedVariant(fetchedProduct.product_variants[0].id)
         setCurrentImageIndex(0)
       }
     }
@@ -43,55 +43,89 @@ export default function ProductDetailPage({ params }: { params: { productId: str
     fetchProduct()
   }, [params.productId])
 
-  // Reset image index when variant changes
+  // Memoize current variant
+  const currentVariant = product?.product_variants.find(v => v.id === selectedVariant)
+  const currentImages = currentVariant?.images || []
+  const stockQuantity = currentVariant?.stock[0]?.quantity || 0
+
   useEffect(() => {
-    setCurrentImageIndex(0)
-  }, [selectedVariant])
-
-  if (!product) return <div>Loading...</div>
-
-  const handleAddToCart = () => {
-    if (selectedVariant) {
-      const variant = product.variants.find(v => v.id === selectedVariant)
-      if (variant) {
-        const cartItem: CartItem = {
-          variantId: variant.id,
-          quantity,
-          variant: {
-            ...variant,
-            product: product,
-            images: variant.images
-          }
+    // Initialize the store with data from localStorage
+    const stored = localStorage.getItem('cart-storage')
+    if (stored) {
+        try {
+            const parsed = JSON.parse(stored)
+            if (parsed.state) {
+                useCartStore.setState(parsed.state)
+            }
+        } catch (error) {
+            console.error('Error hydrating cart:', error)
         }
-        addToCart(cartItem)
-      }
     }
-  }
+    setIsHydrated(true)
+}, [])
+  // Update quantity if it exceeds stock
+  const currentQuantity = items.find(item => item.variantId === selectedVariant)?.quantity || 0
+  useEffect(() => {
+    if (currentVariant) {
+      setQuantity(prev => Math.min(prev, stockQuantity))
+    }
+  }, [currentVariant, stockQuantity])
 
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => 
-      prev < currentVariantImages.length - 1 ? prev + 1 : prev
+  // Handle image navigation
+  const nextImage = useCallback(() => {
+    setCurrentImageIndex(prev => 
+      prev < currentImages.length - 1 ? prev + 1 : prev
     )
-  }
+  }, [currentImages.length])
 
-  const previousImage = () => {
-    setCurrentImageIndex((prev) => 
+  const previousImage = useCallback(() => {
+    setCurrentImageIndex(prev => 
       prev > 0 ? prev - 1 : prev
     )
+  }, [])
+
+  // Handle cart operations
+  const handleAddToCart = useCallback(() => {
+    if (!product || !selectedVariant || !currentVariant) return
+
+    const cartItem: CartItem = {
+      variantId: currentVariant.id,
+      quantity,
+      product_variant: {
+        ...currentVariant,
+        product
+      }
+    }
+    addToCart(cartItem)
+    setQuantity(1)
+  }, [product, selectedVariant, currentVariant, quantity, addToCart])
+
+  // Loading state
+  if (!product) {
+    return <div className="flex justify-center items-center min-h-[400px]">Loading...</div>
+  }
+  const handleIncrement = () => {
+    const maxQuantity = currentVariant?.stock[0]?.quantity || 0
+    setQuantity(prev => {
+      const newQuantity = prev + 1
+      return newQuantity <= maxQuantity ? newQuantity : prev
+    })
   }
 
+  const handleDecrement = () => {
+    setQuantity(prev => (prev > 1 ? prev - 1 : 1))
+  }
   return (
     <div className="grid mx-auto py-4 px-4 md:grid-cols-2 gap-8">
       {/* Product Images */}
       <div className="space-y-4">
-        {/* Main Image */}
-        {currentVariantImages.length > 0 && (
+        {currentVariant && currentImages.length > 0 && (
           <div 
             className="relative w-full aspect-square cursor-pointer group"
             onClick={() => setIsFullscreen(true)}
           >
             <Image 
-              src={currentVariantImages[currentImageIndex]} 
+              src={currentImages[currentImageIndex].url} 
               alt={`${product.name} - Image ${currentImageIndex + 1}`}
               fill 
               className="object-cover rounded-lg"
@@ -103,18 +137,18 @@ export default function ProductDetailPage({ params }: { params: { productId: str
         )}
 
         {/* Thumbnail Navigation */}
-        {currentVariantImages.length > 1 && (
+        {currentImages.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {currentVariantImages.map((image, index) => (
+            {currentImages.map((image, index) => (
               <button
-                key={index}
+                key={image.id}
                 onClick={() => setCurrentImageIndex(index)}
                 className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden ${
                   currentImageIndex === index ? 'ring-2 ring-primary' : ''
                 }`}
               >
                 <Image
-                  src={image}
+                  src={image.url}
                   alt={`${product.name} - Thumbnail ${index + 1}`}
                   fill
                   className="object-cover"
@@ -128,18 +162,18 @@ export default function ProductDetailPage({ params }: { params: { productId: str
         <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
           <DialogContent className="max-w-screen-lg h-[90vh] flex items-center justify-center">
             <div className="relative w-full h-full">
-              
-              
-              <div className="relative w-full h-full">
-                <Image
-                  src={currentVariantImages[currentImageIndex]}
-                  alt={`${product.name} - Fullscreen`}
-                  fill
-                  className="object-contain"
-                />
-              </div>
+              {currentImages.length > 0 && (
+                <div className="relative w-full h-full">
+                  <Image
+                    src={currentImages[currentImageIndex].url}
+                    alt={`${product.name} - Fullscreen`}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              )}
 
-              {currentVariantImages.length > 1 && (
+              {currentImages.length > 1 && (
                 <>
                   <Button
                     variant="outline"
@@ -155,7 +189,7 @@ export default function ProductDetailPage({ params }: { params: { productId: str
                     size="icon"
                     className="absolute right-2 top-1/2 -translate-y-1/2"
                     onClick={nextImage}
-                    disabled={currentImageIndex === currentVariantImages.length - 1}
+                    disabled={currentImageIndex === currentImages.length - 1}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -169,10 +203,9 @@ export default function ProductDetailPage({ params }: { params: { productId: str
       {/* Product Details */}
       <div>
         <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
-        <p className="text-muted-foreground mb-6">{product.description}</p>
-        
+        <TipTapEditorPreview content={product?.description ?? undefined} isEditable={false} />
         {/* Variant Selection */}
-        <div className="mb-4">
+        <div className="my-4">
           <label className="block mb-2">Select Variant</label>
           <Select 
             value={selectedVariant || ''}
@@ -182,11 +215,11 @@ export default function ProductDetailPage({ params }: { params: { productId: str
               <SelectValue placeholder="Choose a variant" />
             </SelectTrigger>
             <SelectContent>
-              {product.variants.map(variant => (
+              {product.product_variants.map(variant => (
                 <SelectItem key={variant.id} value={variant.id}>
-                  {variant.name} - ${variant.price.toFixed(2)} 
-                  {variant.stock > 0 
-                    ? ` (${variant.stock} in stock)` 
+                  {variant.size.name}, {variant.color.name} - ${(variant.price ?? product.price).toFixed(2)} 
+                  {variant.stock[0]?.quantity > 0 
+                    ? ` (${variant.stock[0].quantity} in stock)` 
                     : ' (Out of Stock)'}
                 </SelectItem>
               ))}
@@ -196,41 +229,46 @@ export default function ProductDetailPage({ params }: { params: { productId: str
 
         {/* Quantity Selection */}
         <div className="mb-4">
-          <label className="block mb-2">Quantity</label>
-          <div className="flex items-center">
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            >
-              -
-            </Button>
-            <span className="mx-4">{quantity}</span>
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={() => {
-                const selectedVariantObj = product.variants.find(v => v.id === selectedVariant)
-                setQuantity(Math.min(
-                  quantity + 1, 
-                  selectedVariantObj?.stock || 1
-                ))
-              }}
-            >
-              +
-            </Button>
-          </div>
-        </div>
+    <label className="block mb-2">Quantity</label>
+    <div className="flex items-center space-x-4">
+      <Button 
+        variant="outline" 
+        size="icon"
+        onClick={handleDecrement}
+        disabled={quantity <= 1}
+      >
+        <Minus className="h-4 w-4" />
+      </Button>
+      <span className="w-12 text-center">
+        {quantity||currentQuantity}
+      </span>
+      <Button 
+        variant="outline" 
+        size="icon"
+        onClick={handleIncrement}
+        disabled={quantity >= (currentVariant?.stock[0]?.quantity || 0)}
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+    <p className="text-sm text-muted-foreground mt-2">
+      {currentVariant?.stock[0]?.quantity || 0} items available
+    </p>
+  </div>
 
         {/* Add to Cart Button */}
         <Button 
-          onClick={handleAddToCart}
-          disabled={!selectedVariant || 
-            product.variants.find(v => v.id === selectedVariant)?.stock === 0
+          onClick={
+            currentQuantity > 0 
+              ? () => removeFromCart(selectedVariant||'') 
+              : handleAddToCart
           }
+          disabled={!currentVariant || stockQuantity === 0 || quantity > stockQuantity}
           className="w-full"
         >
-          Add to Cart
+          {
+            currentQuantity > 0 ? 'Remove from cart' : 'Add to Cart'
+          }
         </Button>
       </div>
     </div>

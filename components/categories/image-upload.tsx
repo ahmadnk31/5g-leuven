@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
-import { ImagePlus, Trash } from 'lucide-react';
-import Image from 'next/image';
+import { useCallback, useEffect, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { ImagePlus, Trash, Edit2 } from "lucide-react";
+import Image from "next/image";
 
 interface ImageUploadProps {
   value: string;
@@ -12,76 +13,72 @@ interface ImageUploadProps {
   disabled?: boolean;
 }
 
-export function ImageUpload({
-  value,
-  onChange,
-  disabled
-}: ImageUploadProps) {
+export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
   const supabase = createClient();
-useEffect(() => {
-    const fetchImages= async () => {
-      const { data: categories } = await supabase.storage.from('category-images').list();
-      console.log(categories);
-    }
-    fetchImages();
-    
-  }, []);
-  const uploadImage = useCallback(async (file: File) => {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from('category-images')
-        .upload(fileName, file);
+  const [isEditing, setIsEditing] = useState(false);
 
-      if (uploadError) throw uploadError;
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file) return;
 
-      const { data } = supabase.storage
-        .from('category-images')
-        .getPublicUrl(fileName);
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("category-images")
+          .upload(fileName, file);
 
-      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/category-images/${fileName}`;
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      return null;
-    }
-  }, [supabase]);
+        if (uploadError) throw uploadError;
 
-  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+        const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/category-images/${fileName}`;
+        console.log(`category image url: ${url}`);
+        onChange(url);
+        setIsEditing(false);
+      } catch (error: any) {
+        console.error("Error uploading image:", error);
+      }
+    },
+    [onChange, supabase]
+  );
 
-    const url = await uploadImage(file);
-    console.log(`category image url: ${url}`);
-    if (url) {
-      onChange(url);
-    }
-  }, [onChange, uploadImage]);
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".gif"],
+    },
+    maxFiles: 1,
+    disabled,
+  });
+
+  const handleDeleteImage = useCallback(() => {
+    onChange("");
+    setIsEditing(false);
+  }, [onChange]);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          asChild
+      {!value || isEditing ? (
+        <div
+          {...getRootProps()}
+          className={`
+            border-2 border-dashed rounded-lg p-6 cursor-pointer
+            transition-colors duration-200 ease-in-out
+            ${isDragActive ? "border-primary bg-primary/10" : "border-gray-300"}
+            ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-primary"}
+          `}
         >
-          <label>
-            <ImagePlus className="mr-2 h-4 w-4" />
-            Upload Image
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileSelect}
-              disabled={disabled}
-            />
-          </label>
-        </Button>
-      </div>
-
-      {value && (
+          <input {...getInputProps()} />
+          <div className="flex flex-col items-center justify-center gap-2">
+            <ImagePlus className="h-8 w-8 text-gray-400" />
+            <p className="text-sm text-gray-600">
+              {isDragActive
+                ? "Drop the image here"
+                : "Drag & drop an image here, or click to select"}
+            </p>
+          </div>
+        </div>
+      ) : (
         <div className="relative w-40">
           <Image
             src={value}
@@ -90,16 +87,26 @@ useEffect(() => {
             width={160}
             height={160}
           />
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon"
-            className="absolute top-2 right-2"
-            onClick={() => onChange('')}
-            disabled={disabled}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
+          <div className="absolute top-2 right-2 flex gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              onClick={() => setIsEditing(true)}
+              disabled={disabled}
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              onClick={handleDeleteImage}
+              disabled={disabled}
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>

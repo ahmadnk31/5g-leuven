@@ -1,14 +1,26 @@
 'use server'
-import { createClient } from '@/lib/supabase/server';
-import { Billboard, ProductSearchParams, ProductWithVariants } from './types'
+import { createClient } from '@/lib/supabase/server'
+import { Billboard, ProductSearchParams, ProductWithDetails } from './types'
 
-
-
-export async function searchProducts(params: ProductSearchParams): Promise<ProductWithVariants[]> {
+export async function searchProducts(params: ProductSearchParams): Promise<ProductWithDetails[]> {
   const supabase = await createClient()
   let query = supabase
     .from('products')
-    .select('*, variants(*)')
+    .select(`
+      *,
+      category:categories(*),
+      product_variants(
+        *,
+        size:sizes(*),
+        color:colors(*),
+        stock:stock(*),
+        images(*)
+      ),
+      product_features(*),
+      product_tags(
+        tag:tags(*)
+      )
+    `)
 
   if (params.query) {
     query = query.ilike('name', `%${params.query}%`)
@@ -38,14 +50,28 @@ export async function searchProducts(params: ProductSearchParams): Promise<Produ
     return []
   }
 
-  return data as ProductWithVariants[]
+  return data as ProductWithDetails[]
 }
 
-export async function getProductsByCategoryId(categoryId: string): Promise<ProductWithVariants[]> {
+export async function getProductsByCategoryId(categoryId: string): Promise<ProductWithDetails[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('products')
-    .select('*, variants(*)')
+    .select(`
+      *,
+      category:categories(*),
+      product_variants(
+        *,
+        size:sizes(*),
+        color:colors(*),
+        stock:stock(*),
+        images(*)
+      ),
+      product_features(*),
+      product_tags(
+        tag:tags(*)
+      )
+    `)
     .eq('category_id', categoryId)
 
   if (error) {
@@ -53,21 +79,27 @@ export async function getProductsByCategoryId(categoryId: string): Promise<Produ
     return []
   }
 
-  return data as ProductWithVariants[]
+  return data as ProductWithDetails[]
 }
 
-
-
-export async function getProductById(id: string): Promise<ProductWithVariants | null> {
-    const supabase = await createClient()
+export async function getProductById(id: string): Promise<ProductWithDetails | null> {
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('products')
     .select(`
       *,
-      variants (
-        *
+      category:categories(*),
+      product_variants(
+        *,
+        size:sizes(*),
+        color:colors(*),
+        stock:stock(*),
+        images(*)
       ),
-      categories (*)
+      product_features(*),
+      product_tags(
+        tag:tags(*)
+      )
     `)
     .eq('id', id)
     .single()
@@ -77,11 +109,11 @@ export async function getProductById(id: string): Promise<ProductWithVariants | 
     return null
   }
 
-  return data as ProductWithVariants
+  return data as ProductWithDetails
 }
 
 export async function getBillboards(): Promise<Billboard[]> {
-    const supabase = await createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('billboards')
     .select('*')
@@ -94,5 +126,3 @@ export async function getBillboards(): Promise<Billboard[]> {
 
   return data
 }
-
-

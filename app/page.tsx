@@ -3,53 +3,70 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getBillboards, searchProducts } from '@/lib/store/search-products'
-import { ProductWithVariants, Billboard, Category } from '@/lib/store/types'
+
 import { Button } from "@/components/ui/button"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { CategoryCarousel } from '@/components/store/category-carousel'
 import { createClient } from '@/lib/supabase/client'
+import { Billboard, Category, ProductWithDetails } from '@/lib/store/types'
+
+interface FeaturedSection {
+  title: string
+  query: {
+    sortBy?: 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc'
+    limit?: number
+    categoryId?: string
+    isFeatured?: boolean
+  }
+}
+
+const featuredSections: FeaturedSection[] = [
+  {
+    title: 'Product of the Week',
+    query: { sortBy: 'price-desc', limit: 1, isFeatured: true }
+  },
+  {
+    title: 'Discounted Items',
+    query: { sortBy: 'price-asc', limit: 4 }
+  },
+  {
+    title: 'New Arrivals',
+    query: { sortBy: 'name-asc', limit: 4 }
+  }
+]
 
 export default function HomePage() {
   const [billboards, setBillboards] = useState<Billboard[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const supabase = createClient()
-  const [featuredSections, setFeaturedSections] = useState<{
-    [key: string]: ProductWithVariants[]
-  }>({
-    'Product of the Week': [],
-    'Discounted Items': [],
-    'New Arrivals': []
-  })
+  const [featuredProducts, setFeaturedProducts] = useState<{
+    [key: string]: ProductWithDetails[]
+  }>({})
 
   useEffect(() => {
     async function fetchHomePageData() {
-      // Fetch billboards
-      const fetchedBillboards = await getBillboards()
-      setBillboards(fetchedBillboards)
+      try {
+        // Fetch billboards
+        const fetchedBillboards = await getBillboards()
+        setBillboards(fetchedBillboards)
 
-      // Fetch categories
-      const { data: categoriesData } = await supabase
-        .from('categories')
-        .select('*')
-      setCategories(categoriesData || [])
+        // Fetch categories
+        const { data: categoriesData } = await supabase
+          .from('categories')
+          .select('*')
+        setCategories(categoriesData || [])
 
-      // Fetch featured products
-      const productOfWeek = await searchProducts({ 
-        sortBy: 'price-desc', 
-      })
-      const discountedItems = await searchProducts({ 
-        sortBy: 'price-asc',  
-      })
-      const newArrivals = await searchProducts({ 
-        sortBy: 'name-asc',  
-      })
-
-      setFeaturedSections({
-        'Product of the Week': productOfWeek,
-        'Discounted Items': discountedItems,
-        'New Arrivals': newArrivals
-      })
+        // Fetch featured products
+        const featuredProductsData: { [key: string]: ProductWithDetails[] } = {}
+        for (const section of featuredSections) {
+          const products = await searchProducts(section.query)
+          featuredProductsData[section.title] = products
+        }
+        setFeaturedProducts(featuredProductsData)
+      } catch (error) {
+        console.error('Error fetching home page data:', error)
+      }
     }
 
     fetchHomePageData()
@@ -93,20 +110,20 @@ export default function HomePage() {
       )}
 
       {/* Featured Product Sections */}
-      {Object.entries(featuredSections).map(([sectionTitle, products]) => (
-        <section key={sectionTitle} className="mx-auto px-4">
-          <h2 className="text-2xl font-bold mb-6">{sectionTitle}</h2>
+      {featuredSections.map(({ title }) => (
+        <section key={title} className="mx-auto px-4">
+          <h2 className="text-2xl font-bold mb-6">{title}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map(product => {
-              const firstVariant = product.variants[0]
-              const firstImage = firstVariant?.images&&firstVariant?.images[0]
+            {featuredProducts[title]?.map(product => {
+              const firstVariant = product.product_variants[0]
+              const firstImage = product.product_variants[0]?.images[0]
 
               return (
                 <Card key={product.id} className='overflow-hidden'>
                   {firstImage && (
                     <div className="relative w-full aspect-square">
                       <Image 
-                        src={firstImage} 
+                        src={firstImage.url} 
                         alt={product.name} 
                         fill 
                         className="object-cover"
@@ -117,7 +134,7 @@ export default function HomePage() {
                     <h3 className="font-semibold line-clamp-2">{product.name}</h3>
                     {firstVariant && (
                       <p className="text-muted-foreground">
-                        ${firstVariant.price.toFixed(2)}
+                        ${(firstVariant.price ?? product.price).toFixed(2)}
                       </p>
                     )}
                   </CardContent>
@@ -140,3 +157,4 @@ export default function HomePage() {
     </div>
   )
 }
+

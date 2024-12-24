@@ -1,63 +1,66 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, PersistOptions } from 'zustand/middleware'
 import { CartItem } from './types'
 
 interface CartState {
   items: CartItem[]
+  getTotalItems: () => number
   addToCart: (item: CartItem) => void
   removeFromCart: (variantId: string) => void
   updateQuantity: (variantId: string, quantity: number) => void
   clearCart: () => void
 }
 
-export const useCartStore = create<CartState>()(
+type CartPersist = CartState
+
+const persistOptions: PersistOptions<CartPersist> = {
+  name: 'cart-storage',
+  skipHydration: true,
+}
+
+const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      
-      addToCart: (newItem) => {
+      addToCart: (item: CartItem) => {
         set((state) => {
-          const existingItem = state.items.find(
-            item => item.variantId === newItem.variantId
+          const existingItemIndex = state.items.findIndex(
+            (cartItem) => cartItem.variantId === item.variantId
           )
-          
-          if (existingItem) {
-            return {
-              items: state.items.map(item => 
-                item.variantId === newItem.variantId
-                  ? { ...item, quantity: item.quantity + newItem.quantity }
-                  : item
-              )
-            }
+
+          if (existingItemIndex > -1) {
+            const updatedItems = [...state.items]
+            updatedItems[existingItemIndex].quantity += item.quantity
+            return { items: updatedItems }
+          } else {
+            return { items: [...state.items, item] }
           }
-          
-          return { items: [...state.items, newItem] }
         })
       },
-      
-      removeFromCart: (variantId) => {
-        set(state => ({
-          items: state.items.filter(item => item.variantId !== variantId)
+      removeFromCart: (variantId: string) => {
+        set((state) => ({
+          items: state.items.filter((item) => item.variantId !== variantId),
         }))
       },
-      
-      updateQuantity: (variantId, quantity) => {
-        set(state => ({
-          items: state.items.map(item => 
-            item.variantId === variantId 
-              ? { ...item, quantity: Math.max(0, quantity) }
-              : item
-          ).filter(item => item.quantity > 0)
-        }))
+      updateQuantity: (variantId: string, quantity: number) => {
+        set((state) => {
+          const updatedItems = state.items.map((item) => {
+            if (item.variantId === variantId) {
+              return { ...item, quantity }
+            }
+            return item
+          })
+          return { items: updatedItems }
+        })
       },
-      
-      clearCart: () => {
-        set({ items: [] })
-      }
+      clearCart: () => set({ items: [] }),
+      getTotalItems: () => {
+        return get().items.reduce((total, item) => total + item.quantity, 0)
+      },
     }),
-    {
-      name: 'cart-storage',
-      skipHydration: true
-    }
+    persistOptions
   )
 )
+
+export default useCartStore
+

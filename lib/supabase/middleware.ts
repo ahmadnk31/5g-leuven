@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
+ 
   // If accessing dashboard routes and not authenticated, redirect to sign in
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
     if (!user) {
@@ -58,6 +58,10 @@ export async function updateSession(request: NextRequest) {
       redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
       return NextResponse.redirect(redirectUrl)
     }
+  }
+  if (user && (request.nextUrl.pathname === '/auth/signin' || request.nextUrl.pathname === '/auth/signup')) {
+    const redirectUrl = new URL('/', request.url)
+    return NextResponse.redirect(redirectUrl)
   }
 
   return response

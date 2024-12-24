@@ -1,31 +1,34 @@
-import { Navbar } from '@/components/store/nav';
+
+import { Navbar} from '@/components/store/nav';
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import {Toaster} from '@/components/ui/toaster';
+
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Ecommerce Store - Your One-Stop Shop for Everything',
+  title: '5G Phones - Your One-Stop Shop for Everything',
   description: 'Discover a wide range of products at unbeatable prices. Shop now and enjoy fast shipping and excellent customer service.',
-  keywords: ['ecommerce', 'online shopping', 'buy online', 'shop', 'store'],
-  authors: [{ name: 'Ecommerce Store' }],
-  creator: 'Ecommerce Store Team',
-  publisher: 'Ecommerce Store Inc.',
-  metadataBase: new URL('https://yourdomain.com'),
+  keywords: ['ecommerce', 'online shopping', 'buy online', 'shop', 'store','Fix your phone'],
+  authors: [{ name: '5G Phones' }],
+  creator: '5G Phones Team',
+  publisher: '5G Phones Inc.',
+  metadataBase: new URL('https://5gphones.be'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: 'Ecommerce Store - Your One-Stop Shop for Everything',
     description: 'Discover a wide range of products at unbeatable prices. Shop now and enjoy fast shipping and excellent customer service.',
-    url: 'https://yourdomain.com',
+    url: 'https://5gphones.be',
     siteName: '5G Leuven',
     locale: 'en_US',
     type: 'website',
     images: [
       {
-        url: 'https://yourdomain.com/og-image.jpg',
+        url: 'https://5gphones.be/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'Ecommerce Store - Your One-Stop Shop for Everything',
@@ -34,10 +37,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Ecommerce Store - Your One-Stop Shop for Everything',
-    description: 'Discover a wide range of products at unbeatable prices. Shop now and enjoy fast shipping and excellent customer service.',
+    title: '5G Phones - Your One-Stop Shop for Everything',
+    description: 'Discover a wide range of products at unbeatable prices. Shop now and enjoy fast shipping and excellent customer service. Fix your phone at 5G Phones',
     creator: '@yourhandle',
-    images: ['https://yourdomain.com/twitter-image.jpg'],
+    images: ['https://5gphones.be/twitter-image.jpg'],
   },
   robots: {
     index: true,
@@ -93,6 +96,7 @@ export default function RootLayout({
 </head>
       <body className={inter.className}>
         <Navbar />
+        <Toaster />
         {children}</body>
     </html>
   );
