@@ -21,7 +21,7 @@ import { ImageUpload } from './image-upload';
 import { Loader2 } from 'lucide-react';
 
 interface BillboardFormProps {
-  initialData: any;
+  initialData: BillboardFormValues;
 }
 
 export function BillboardForm({ initialData }: BillboardFormProps) {
@@ -34,7 +34,7 @@ export function BillboardForm({ initialData }: BillboardFormProps) {
     resolver: zodResolver(BillboardSchema),
     defaultValues: initialData || {
       label: '',
-      imageUrl: '',
+      image_url: '',
     },
   });
 
@@ -47,7 +47,7 @@ export function BillboardForm({ initialData }: BillboardFormProps) {
         .from('billboards')
         [isNew ? 'insert' : 'update']({
           label: data.label,
-          image_url: data.imageUrl,
+          image_url: data.image_url,
           ...(isNew ? {} : { id: initialData.id }),
         })
         .eq('id', isNew ? undefined : initialData.id);
@@ -91,7 +91,7 @@ export function BillboardForm({ initialData }: BillboardFormProps) {
 
         <FormField
           control={form.control}
-          name="imageUrl"
+          name="image_url"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Image</FormLabel>

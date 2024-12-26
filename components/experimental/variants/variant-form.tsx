@@ -320,26 +320,6 @@ export const ExperimentalVariantForm: React.FC<VariantFormProps> = ({
         if (imagesError) throw imagesError;
       }
   
-      // 4. Handle stock update
-      // if (edit) {
-      //   // Update existing stock record
-      //   const { error: stockError } = await supabase
-      //     .from('stock')
-      //     .update({ quantity: parseInt(data.stock.toString()) })
-      //     .eq('variant_id', variantId);
-  
-      //   if (stockError) throw stockError;
-      // } else {
-      //   // Create new stock record
-      //   const { error: stockError } = await supabase
-      //     .from('stock')
-      //     .insert({
-      //       variant_id: variantId,
-      //       quantity: parseInt(data.stock.toString())
-      //     });
-  
-      //   if (stockError) throw stockError;
-      // }
   
       router.refresh();
       router.push(`/dashboard/variants`);
@@ -596,26 +576,28 @@ export const ExperimentalVariantForm: React.FC<VariantFormProps> = ({
         </form>
       </Form>
 
-      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the variant
-              and all associated images.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+     {edit&&(
+       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+       <AlertDialogContent>
+         <AlertDialogHeader>
+           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+           <AlertDialogDescription>
+             This action cannot be undone. This will permanently delete the variant
+             and all associated images.
+           </AlertDialogDescription>
+         </AlertDialogHeader>
+         <AlertDialogFooter>
+           <AlertDialogCancel>Cancel</AlertDialogCancel>
+           <AlertDialogAction
+             onClick={handleDelete}
+             className="bg-red-600 hover:bg-red-700"
+           >
+             Delete
+           </AlertDialogAction>
+         </AlertDialogFooter>
+       </AlertDialogContent>
+     </AlertDialog>
+     )}
     </div>
   )
 }

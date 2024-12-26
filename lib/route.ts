@@ -16,12 +16,6 @@ export const routes = [
   {
     label: 'Product variants',
     icon: Layers,
-    href: '/dashboard/product-variants',
-    pattern: /^\/dashboard\/product-variants/,
-  },
-  {
-    label: 'Experimental variants',
-    icon: FolderTree,
     href: '/dashboard/variants',
     pattern: /^\/dashboard\/variants/,
   },
