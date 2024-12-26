@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { usePathname, useRouter} from 'next/navigation'
+import { cn } from '@/lib/utils'
 
 
 export function Navbar() {
@@ -77,7 +78,7 @@ export function Navbar() {
     }
 
     return (
-      <nav className="sticky top-0 z-50 bg-white shadow-sm">
+      <nav className={cn(" bg-white shadow-sm",{ 'sticky top-0 z-50': pathname.includes('dashboard') })}>
         <Alert className='bg-amber-500/50 rounded-none'>
   <InfoIcon className="h-4 w-4 " />
   <AlertDescription>
